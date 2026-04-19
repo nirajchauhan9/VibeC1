@@ -39,23 +39,51 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Form Submission (Prevent default and show success for demo)
+    // Form Submission (Prevent default and post to webhook)
     if (leadForm) {
-        leadForm.addEventListener('submit', (e) => {
+        leadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            // Show loading state on button
+            const submitBtn = leadForm.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.innerText;
+            submitBtn.innerText = 'Sending...';
+            submitBtn.disabled = true;
+
             // Collect form data
             const formData = new FormData(leadForm);
-            const data = Object.fromEntries(formData.entries());
-            console.log('Form Submitted Data:', data);
+            console.log('Form Submitted Data:', Object.fromEntries(formData.entries()));
             
-            // In a real app, this would be an AJAX/fetch call to a backend
+            // Convert FormData to URLSearchParams for better webhook parsing without CORS preflight
+            const urlEncodedData = new URLSearchParams(formData).toString();
             
-            // Show Success Message (Simple alert for demonstration)
-            alert('Thank you! Your personalized Numerology Report will be sent to your email shortly.');
+            const webhookUrl = 'https://connect.pabbly.com/webhook-listener/webhook/IjU3NjIwNTY1MDYzZTA0MzY1MjZiNTUzMyI_3D_pc/IjU3NjcwNTZlMDYzNjA0M2Q1MjZkNTUzMTUxMzYi_pc';
             
-            // Reset form and close modal
-            leadForm.reset();
-            closeModalFunc();
+            try {
+                // Send data to Pabbly Webhook
+                await fetch(webhookUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: urlEncodedData
+                });
+                
+                // Show Success Message
+                alert('Thank you! Your personalized Numerology Report will be sent to your email shortly.');
+                
+                // Reset form and close modal
+                leadForm.reset();
+                closeModalFunc();
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                alert('There was an error submitting your request. Please try again.');
+            } finally {
+                // Restore button state
+                submitBtn.innerText = originalBtnText;
+                submitBtn.disabled = false;
+            }
         });
     }
 
